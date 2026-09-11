@@ -1,4 +1,9 @@
 .idea/
 *.iml
+
 out/
 target/
+
+run.bat
+
+*.class
