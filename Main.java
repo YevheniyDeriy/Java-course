@@ -180,13 +180,12 @@ public class Main
 
         int wordCount = content.trim().isEmpty() ? 0 : content.trim().split("\\s+").length;
 
-        // Об'єкт-зразок — не додається в масив, лише для порівняння.
         Note sample = new Note(title, content, category, priority, reminderInHours, wordCount);
 
         int foundIndex = -1;
         for (int i = 0; i < count; i++)
         {
-            if (notes[i].equals(sample))   // порівняння ЦІЛОГО об'єкта, не одного поля
+            if (notes[i].equals(sample))
             {
                 foundIndex = i;
                 break;
