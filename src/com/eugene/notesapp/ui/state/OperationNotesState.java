@@ -1,7 +1,7 @@
 package com.eugene.notesapp.ui.state;
 
 import com.eugene.notesapp.Main;
-
+import java.util.InputMismatchException;
 public class OperationNotesState implements MenuState
 {
     @Override
@@ -13,15 +13,27 @@ public class OperationNotesState implements MenuState
         IO.println("2. Видалити нотатку");
         IO.println("0. Повернутися в головне меню");
         IO.print("Оберіть дію: ");
-        int choice = Main.scanner.nextInt();
-        Main.scanner.nextLine();
-
+        int choice;
+        try
+        {
+            choice = Main.scanner.nextInt();
+            Main.scanner.nextLine();
+        }
+        catch (InputMismatchException e)
+        {
+            IO.println("Помилка: введіть число від 0 до 4.");
+            Main.scanner.nextLine();
+            return;
+        }
         switch(choice)
         {
             case 1:
             {
-                Main.addNote();
-                Main.count++;
+                boolean added = Main.addNote();
+                if (added)
+                {
+                    Main.count++;
+                }
                 break;
             }
             case 2:

@@ -1,10 +1,14 @@
 package com.eugene.notesapp;
 
 import com.eugene.notesapp.model.Note;
+import com.eugene.notesapp.exception.DomainException;
+import com.eugene.notesapp.exception.InvalidPriorityException;
+import com.eugene.notesapp.exception.InvalidReminderException;
 import com.eugene.notesapp.ui.state.MainMenuState;
 import com.eugene.notesapp.ui.state.MenuContext;
 
 import java.util.Scanner;
+import java.util.InputMismatchException;
 
 public class Main
 {
@@ -23,7 +27,41 @@ public class Main
     }
 
     // FUNCTIONS  ↓
-    public static void addNote()
+    private static void validatePriority(int priority) throws InvalidPriorityException
+    {
+        if (priority < 1 || priority > 5)
+        {
+            throw new InvalidPriorityException(
+                    "Пріоритет має бути в діапазоні від 1 до 5.", priority);
+        }
+    }
+    private static void validateReminder(double reminderInHours) throws InvalidReminderException
+    {
+        if (reminderInHours < 0)
+        {
+            throw new InvalidReminderException(
+                    "Час нагадування не може бути від'ємним.", reminderInHours);
+        }
+    }
+    private static Note buildNote(String title, String content, String category,
+                                  int priority, double reminderInHours) throws DomainException
+    {
+        try
+        {
+            validatePriority(priority);
+            validateReminder(reminderInHours);
+
+            int wordCount = content.trim().isEmpty() ? 0 : content.trim().split("\\s+").length;
+            return new Note(title, content, category, priority, reminderInHours, wordCount);
+        }
+        catch (DomainException e)
+        {
+            System.err.println("[LOG] Порушення доменного правила при створенні нотатки: " + e.getMessage());
+            throw e; 
+        }
+    }
+
+    public static boolean addNote()
     {
         IO.println();
         IO.print("Напишіть назву нотатки: ");
@@ -36,17 +74,59 @@ public class Main
         IO.print("Введіть текст:");
         String content = scanner.nextLine();
 
-        IO.print("Вкажіть пріоритет (1-5): ");
-        int priority = scanner.nextInt();
+        boolean success = false;
 
-        IO.print("Через скільки годин нагадати про нотатку(Введіть 0, без нагадування): ");
-        double reminderInHours = scanner.nextDouble();
-        scanner.nextLine();
+        try
+        {
+            IO.print("Вкажіть пріоритет (1-5): ");
+            int priority = scanner.nextInt();
 
-        int wordCount = content.trim().isEmpty() ? 0 : content.trim().split("\\s+").length;
+            if (priority < 1 || priority > 5)
+            {
+                throw new InvalidPriorityException(
+                        "Пріоритет має бути в діапазоні від 1 до 5.", priority);
+            }
 
-        notes[count] = new Note(title, content, category, priority, reminderInHours, wordCount);
+            IO.print("Через скільки годин нагадати про нотатку(Введіть 0, без нагадування): ");
+            double reminderInHours = scanner.nextDouble();
+            scanner.nextLine();
+
+            int wordCount = content.trim().isEmpty() ? 0 : content.trim().split("\\s+").length;
+
+            notes[count] = new Note(title, content, category, priority, reminderInHours, wordCount);
+            success = true;
+        }
+        catch (InvalidPriorityException e)
+        {
+            IO.println("Помилка: " + e.getMessage() +
+                    " (введене значення: " + e.getInvalidPriority() + ")");
+        }
+        catch (InputMismatchException e)
+        {
+            IO.println("Помилка: пріоритет і час нагадування мають бути числами.");
+            scanner.nextLine();
+        }
+        catch (ArrayIndexOutOfBoundsException e)
+        {
+            IO.println("Помилка: масив нотаток заповнений (максимум " + notes.length +
+                    "). Видаліть стару нотатку, щоб додати нову.");
+        }
+        finally
+        {
+            if (success)
+            {
+                IO.println("Нотатка успішно створена.");
+            }
+            else
+            {
+                IO.println("Нотатку не створено.");
+            }
+        }
+
+        return success;
     }
+
+
 
     public static void printNotes()
     {
@@ -64,18 +144,26 @@ public class Main
     public static void printNotesByPriority()
     {
         IO.print("Введіть пріорітет для підрахунку");
-        int priority = scanner.nextInt();
-        scanner.nextLine();
-        int maches = 0;
-        for (int i = 0; i < count; i++)
+        try
         {
-            if (notes[i].getPriority() == priority)
+            int priority = scanner.nextInt();
+            scanner.nextLine();
+            int maches = 0;
+            for (int i = 0; i < count; i++)
             {
-                IO.println(notes[i]);
-                maches++;
+                if (notes[i].getPriority() == priority)
+                {
+                    IO.println(notes[i]);
+                    maches++;
+                }
             }
+            System.out.printf("Всього знайдено " + maches + " нотаток з пріорітетом: " + priority + "\n");
         }
-        System.out.printf("Всього знайдено " + maches + " нотаток з пріорітетом: " + priority + "\n");
+        catch (InputMismatchException e)
+        {
+            IO.println("Помилка: пріоритет має бути цілим числом. Спробуйте ще раз.");
+            scanner.nextLine();
+        }
     }
 
     public static void sortNotes()
