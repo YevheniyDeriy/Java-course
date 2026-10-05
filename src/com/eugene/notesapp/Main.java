@@ -81,25 +81,26 @@ public class Main
             IO.print("Вкажіть пріоритет (1-5): ");
             int priority = scanner.nextInt();
 
-            if (priority < 1 || priority > 5)
-            {
-                throw new InvalidPriorityException(
-                        "Пріоритет має бути в діапазоні від 1 до 5.", priority);
-            }
-
             IO.print("Через скільки годин нагадати про нотатку(Введіть 0, без нагадування): ");
             double reminderInHours = scanner.nextDouble();
             scanner.nextLine();
 
-            int wordCount = content.trim().isEmpty() ? 0 : content.trim().split("\\s+").length;
-
-            notes[count] = new Note(title, content, category, priority, reminderInHours, wordCount);
+            notes[count] = buildNote(title, content, category, priority, reminderInHours);
             success = true;
         }
         catch (InvalidPriorityException e)
         {
             IO.println("Помилка: " + e.getMessage() +
                     " (введене значення: " + e.getInvalidPriority() + ")");
+        }
+        catch (InvalidReminderException e)
+        {
+            IO.println("Помилка: " + e.getMessage() +
+                    " (введене значення: " + e.getInvalidReminder() + ")");
+        }
+        catch (DomainException e)
+        {
+            IO.println("Помилка: " + e.getMessage());
         }
         catch (InputMismatchException e)
         {
@@ -214,28 +215,33 @@ public class Main
         double reminderInHours = scanner.nextDouble();
         scanner.nextLine();
 
-        int wordCount = content.trim().isEmpty() ? 0 : content.trim().split("\\s+").length;
-
-        Note sample = new Note(title, content, category, priority, reminderInHours, wordCount);
-
-        int foundIndex = -1;
-        for (int i = 0; i < count; i++)
+        try
         {
-            if (notes[i].equals(sample))
+            Note sample = buildNote(title, content, category, priority, reminderInHours);
+
+            int foundIndex = -1;
+            for (int i = 0; i < count; i++)
             {
-                foundIndex = i;
-                break;
+                if (notes[i].equals(sample))
+                {
+                    foundIndex = i;
+                    break;
+                }
+            }
+
+            if (foundIndex != -1)
+            {
+                IO.println("Знайдено! Індекс у масиві: " + foundIndex);
+                IO.println(notes[foundIndex]);
+            }
+            else
+            {
+                IO.println("Такої нотатки в масиві немає.");
             }
         }
-
-        if (foundIndex != -1)
+        catch (DomainException e)
         {
-            IO.println("Знайдено! Індекс у масиві: " + foundIndex);
-            IO.println(notes[foundIndex]);
-        }
-        else
-        {
-            IO.println("Такої нотатки в масиві немає.");
+            IO.println("Помилка: " + e.getMessage());
         }
     }
 
