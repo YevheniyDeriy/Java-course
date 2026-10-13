@@ -13,6 +13,7 @@ public class MainMenuState implements MenuState
         System.out.printf("2. Перегляд нотаток (на разі " + Main.count + " нотаток)%n");
         IO.println("3. Сортування нотаток ");
         IO.println("4. Пошук нотаток");
+        IO.println("5. Експорт нотаток");
         IO.println("0. Вихід");
         IO.print("Оберіть дію: ");
         int choice = Main.scanner.nextInt();
@@ -27,29 +28,42 @@ public class MainMenuState implements MenuState
             }
             case 2:
             {
-                if(Main.count < 0)
+                if(Main.count == 0)
                 {
                     IO.println("Немає нотаток для перегляду! Спершу створіть нотатку!");
+                    break;
                 }
                 context.setState(new ViewNotesState());
                 break;
             }
             case 3:
             {
-                if(Main.count < 0)
+                if(Main.count == 0)
                 {
                     IO.println("Немає нотаток для сортування! Спершу створіть нотатку!");
+                    break;
                 }
                 context.setState(new SortNotesState());
                 break;
             }
             case 4:
             {
-                if(Main.count < 0)
+                if(Main.count == 0)
                 {
                     IO.println("Немає нотаток для пошуку! Спершу створіть нотатку!");
+                    break;
                 }
                 context.setState(new SearchNotesState());
+                break;
+            }
+            case 5:
+            {
+                if(Main.count == 0)
+                {
+                    IO.println("Немає нотаток для експорту! Спершу створіть нотатку!");
+                    break;
+                }
+                context.setState(new ExportNotesState());
                 break;
             }
             case 0:
