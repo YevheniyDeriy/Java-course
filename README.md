@@ -36,7 +36,15 @@ src/com/eugene/notesapp/
 │   ├── AbstractNoteExporter.java      — абстрактний клас, спільна логіка exportAll()
 │   ├── PlainTextExporter.java         — реалізація №1: текстовий формат
 │   ├── CsvExporter.java              — реалізація №2: CSV формат з escape
-│   └── ExportContext.java             — Strategy: контекст із setExporter()
+│   ├── ExportContext.java             — Strategy: контекст із setExporter()
+│   ├── NoteExporterFactory.java       — фабрика експортерів за кодом формату
+│   ├── LegacyNoteFormatter.java       — імітація зовнішнього форматера зі старим API
+│   └── LegacyNoteExporterAdapter.java — адаптер старого форматера до NoteExporter
+├── observer/                          — Observer для подій додавання нотаток
+│   ├── NoteObserver.java              — інтерфейс спостерігача
+│   ├── NoteChangeSubject.java         — підписка та сповіщення
+│   ├── NoteLogObserver.java           — запис події в журнал
+│   └── NoteCountObserver.java         — виведення статистики
 └── ui/state/                          — ЛР3: State pattern для меню
     ├── MenuState.java                 — інтерфейс стану меню
     ├── MenuContext.java               — контекст State-паттерну
@@ -68,6 +76,20 @@ src/com/eugene/notesapp/
 
 - **Паттерн Strategy:** клас `ExportContext` приймає `NoteExporter` через конструктор і делегує йому виконання. Метод `setExporter()` дозволяє змінити стратегію експорту під час виконання програми (runtime), без створення нового об'єкта контексту.
 - В `ExportNotesState` користувач обирає формат → `setExporter()` підставляє обрану стратегію на об'єкті `exportContext` → `executeExportAll()` виводить результат. Стан залишається відкритим для можливості повторної зміни стратегії на льоту.
+
+## ЛР5: Factory, Observer та Adapter
+
+### Factory для експортерів
+
+Раніше `ExportNotesState` напряму створював `PlainTextExporter` і `CsvExporter`. Тепер `NoteExporterFactory` створює реалізацію за кодом формату (`TEXT`, `CSV`, `LEGACY`), а стан меню працює з інтерфейсом `NoteExporter`. Невідомий код завершується зрозумілим `IllegalArgumentException`.
+
+### Observer для додавання нотаток
+
+`NoteChangeSubject` зберігає підписників `NoteObserver` та сповіщає їх після успішного додавання нотатки. Підписані два незалежні спостерігачі: `NoteLogObserver` виводить подію журналу, а `NoteCountObserver` показує кількість нотаток. Новий спостерігач додається підпискою, без змін у класі суб'єкта.
+
+### Adapter для старого форматера
+
+`LegacyNoteFormatter` імітує зовнішній клас із методами `formatRecord` і `formatRecords`, які не відповідають контракту `NoteExporter`. `LegacyNoteExporterAdapter` перекладає виклики `export` та `exportAll` на цей API. Сам форматер не змінюється, а меню може використовувати його як звичайний експортер.
 
 ## Запуск
 

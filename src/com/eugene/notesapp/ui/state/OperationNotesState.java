@@ -33,6 +33,7 @@ public class OperationNotesState implements MenuState
                 if (added)
                 {
                     Main.count++;
+                    Main.noteChanges.notifyNoteAdded(Main.notes[Main.count - 1], Main.count);
                 }
                 break;
             }
