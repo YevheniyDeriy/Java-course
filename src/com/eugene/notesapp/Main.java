@@ -1,6 +1,9 @@
 package com.eugene.notesapp;
 
 import com.eugene.notesapp.model.Note;
+import com.eugene.notesapp.model.TextNote;
+import com.eugene.notesapp.model.ReminderNote;
+import com.eugene.notesapp.model.RecurringReminderNote;
 import com.eugene.notesapp.exception.DomainException;
 import com.eugene.notesapp.exception.InvalidPriorityException;
 import com.eugene.notesapp.exception.InvalidReminderException;
@@ -44,15 +47,30 @@ public class Main
         }
     }
     private static Note buildNote(String title, String content, String category,
-                                  int priority, double reminderInHours) throws DomainException
+                                  int priority, double reminderInHours,
+                                  double repeatEveryHours) throws DomainException
     {
         try
         {
             validatePriority(priority);
             validateReminder(reminderInHours);
+            validateReminder(repeatEveryHours);
 
-            int wordCount = content.trim().isEmpty() ? 0 : content.trim().split("\\s+").length;
-            return new Note(title, content, category, priority, reminderInHours, wordCount);
+            if (repeatEveryHours > 0 && reminderInHours == 0)
+            {
+                throw new InvalidReminderException(
+                        "Для повторюваного нагадування спочатку вкажіть час першого нагадування.", repeatEveryHours);
+            }
+            if (reminderInHours == 0)
+            {
+                return new TextNote(title, content, category, priority);
+            }
+            if (repeatEveryHours > 0)
+            {
+                return new RecurringReminderNote(title, content, category, priority,
+                        reminderInHours, repeatEveryHours);
+            }
+            return new ReminderNote(title, content, category, priority, reminderInHours);
         }
         catch (DomainException e)
         {
@@ -83,9 +101,16 @@ public class Main
 
             IO.print("Через скільки годин нагадати про нотатку(Введіть 0, без нагадування): ");
             double reminderInHours = scanner.nextDouble();
+            double repeatEveryHours = 0;
+            if (reminderInHours > 0)
+            {
+                IO.print("Повторювати нагадування кожні скільки годин? (0 — одноразове): ");
+                repeatEveryHours = scanner.nextDouble();
+            }
             scanner.nextLine();
 
-            notes[count] = buildNote(title, content, category, priority, reminderInHours);
+            notes[count] = buildNote(title, content, category, priority,
+                    reminderInHours, repeatEveryHours);
             success = true;
         }
         catch (InvalidPriorityException e)
@@ -138,8 +163,24 @@ public class Main
                 break;
             }
             IO.println(note);
+            IO.println("Поліморфний опис: " + describeNote(note));
+            if (note instanceof RecurringReminderNote recurring)
+            {
+                IO.println("Інтервал повторення через базове посилання: " +
+                        recurring.getRepeatEveryHours() + " год.");
+            }
             printed++;
         }
+    }
+
+    private static String describeNote(Note note)
+    {
+        return switch (note)
+        {
+            case TextNote textNote -> textNote.getTypeDescription();
+            case RecurringReminderNote recurring -> recurring.getTypeDescription();
+            case ReminderNote reminder -> reminder.getTypeDescription();
+        };
     }
 
     public static void printNotesByPriority()
@@ -213,11 +254,18 @@ public class Main
 
         IO.print("Нагадування через (0 — без нагадування): ");
         double reminderInHours = scanner.nextDouble();
+        double repeatEveryHours = 0;
+        if (reminderInHours > 0)
+        {
+            IO.print("Повторювати кожні скільки годин? (0 — одноразове): ");
+            repeatEveryHours = scanner.nextDouble();
+        }
         scanner.nextLine();
 
         try
         {
-            Note sample = buildNote(title, content, category, priority, reminderInHours);
+            Note sample = buildNote(title, content, category, priority,
+                    reminderInHours, repeatEveryHours);
 
             int foundIndex = -1;
             for (int i = 0; i < count; i++)
