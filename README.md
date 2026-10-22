@@ -1,26 +1,75 @@
 # Personal Notes
 
-Консольний Java-застосунок для ведення персональних нотаток.
+Консольний Java-застосунок для створення, пошуку, перегляду, сортування та експорту персональних нотаток.
 
 ## Предметна область
 
-Застосунок призначений для створення та роботи з персональними нотатками. Користувач може створювати нотатки, переглядати їх, знаходити потрібну нотатку, сортувати за пріоритетом та експортувати у різних форматах.
+Усі об'єкти моделі є нотатками. Спільні для них назва, текст, дата створення, категорія, пріоритет і кількість слів зберігаються в абстрактному класі `Note`. Різні способи нагадування задаються підкласами.
 
-## Сутність
+| Клас | Зв'язок | Власні дані |
+| --- | --- | --- |
+| `Note` | Абстрактна sealed-основа | `title`, `content`, `date`, `category`, `priority`, `wordCount` |
+| `TextNote` | Звичайна нотатка є різновидом `Note` | Нагадування відсутнє |
+| `ReminderNote` | Нотатка з нагадуванням є різновидом `Note` | `reminderInHours` |
+| `RecurringReminderNote` | Повторюване нагадування є різновидом `ReminderNote` | `repeatEveryHours` |
 
-Основною сутністю програми є **Note (Нотатка)**.
+Перевірка «є різновидом» проходить для цих зв'язків: кожен підклас можна зберегти в змінній типу `Note`, а `RecurringReminderNote` — також у змінній `ReminderNote`. Натомість `ExportContext` не є експортером: він містить `NoteExporter`, тому це композиція («має»).
 
-| Характеристика    | Тип         | Опис                         |
-| ----------------- | ----------- | ---------------------------- |
-| `title`           | `String`    | Назва нотатки                |
-| `content`         | `String`    | Текст нотатки                |
-| `date`            | `LocalDate` | Дата створення нотатки       |
-| `category`        | `String`    | Категорія нотатки            |
-| `priority`        | `int`       | Пріоритет нотатки від 1 до 5 |
-| `reminderInHours` | `double`    | Через скільки годин нагадати |
-| `wordCount`       | `int`       | Кількість слів у тексті      |
+## Діаграма класів
 
-## Структура проєкту
+```mermaid
+classDiagram
+    class Note {
+        <<abstract sealed>>
+        -String title
+        -String content
+        -LocalDate date
+        -String category
+        -int priority
+        -int wordCount
+        +getTypeDescription()* String
+        +getDate() final LocalDate
+        +equals(Object) boolean
+        +hashCode() int
+    }
+    class TextNote {
+        <<final>>
+        +getTypeDescription() String
+        +toString() String
+    }
+    class ReminderNote {
+        <<sealed>>
+        -double reminderInHours
+        +getTypeDescription() String
+        +toString() String
+        +equals(Object) boolean
+        +hashCode() int
+    }
+    class RecurringReminderNote {
+        <<final>>
+        -double repeatEveryHours
+        +getTypeDescription() String
+        +toString() String
+        +equals(Object) boolean
+        +hashCode() int
+    }
+    Note <|-- TextNote
+    Note <|-- ReminderNote
+    ReminderNote <|-- RecurringReminderNote
+    ExportContext o--> NoteExporter : містить
+```
+
+## ЛР6: наслідування та поліморфізм
+
+### Базовий рівень
+
+- `Note` містить спільний стан і поведінку. Його поля приватні й незмінні після створення.
+- `TextNote` та `ReminderNote` — два різні безпосередні підкласи `Note`. `RecurringReminderNote` успадковує поведінку `ReminderNote` і додає інтервал повторення.
+- Конструктори підкласів викликають `super(...)`. Перевантажені конструктори делегують через `this(...)`, щоб централізувати підрахунок слів і ініціалізацію.
+- Кожен конкретний тип перевизначає `getTypeDescription()` і `toString()`; `toString()` додає специфічні дані до `super.toString()`.
+- `Main.notes` має тип `Note[]`. `printNotes()` проходить по цьому масиву та показує результат поліморфного виклику `getTypeDescription()`.
+
+### Абстрактний клас і конструктори
 
 ```text
 src/com/eugene/notesapp/
@@ -56,26 +105,21 @@ src/com/eugene/notesapp/
     └── ExportNotesState.java          — ЛР4: експорт із вибором формату
 ```
 
-## ЛР4: Інтерфейси та паттерн Strategy
+Під час створення `RecurringReminderNote` конструктори виконуються в порядку `Note` → `ReminderNote` → `RecurringReminderNote`. Кожен друкує повідомлення `[constructor] ...`; запустіть програму й додайте повторюване нагадування, щоб побачити порядок.
 
-### Рівень 1 — Базовий
+`Note.getDate()` позначений `final`: підкласи не повинні змінювати правило отримання дати створення нотатки. Сам `Note` запечатаний, а `TextNote` та `RecurringReminderNote` — фінальні.
 
-**Варіативна поведінка:** експорт нотаток у різних форматах (Plain Text, CSV).
+### Поліморфізм, типи та `sealed`
 
-- `NoteExporter` — інтерфейс з методами `export(Note)` та `exportAll(Note[], int)`.
-- `PlainTextExporter` — реалізація №1: людиночитабельний текстовий формат.
-- `CsvExporter` — реалізація №2: CSV формат із простим escape для полів.
-- **Поліморфна демонстрація:** у `ExportNotesState` опція «Експортувати в усіх форматах» проходить у циклі по масиву `NoteExporter[]` і викликає як `getFormatName()`, так і `exportAll(notes, count)` для кожного експортера, демонструючи відмінність результатів роботи різних реалізацій одного інтерфейсу.
+У `Main.buildNote(...)` обирається `TextNote`, `ReminderNote` або `RecurringReminderNote`. У `printNotes()` змінна циклу має статичний тип `Note`, а її фактичний тип залежить від створеного об'єкта. Виклик `getTypeDescription()` обирає реалізацію за фактичним типом. Через `Note` не можна напряму викликати `getRepeatEveryHours()`, тому застосовано `instanceof RecurringReminderNote recurring`.
 
-### Рівень 2 — Середній
+`Note` оголошений як `sealed` з прямими підкласами `TextNote` і `ReminderNote`; останній дозволяє тільки `RecurringReminderNote`. Вичерпний `switch` у `Main.describeNote()` обробляє кожен дозволений варіант. Якщо дозволені типи зміняться, компілятор допоможе знайти неповний `switch`.
 
-- **Default-метод** `getFormatName()` в інтерфейсі `NoteExporter` — за замовчуванням повертає `"Unknown"`, перевизначається у `PlainTextExporter` (`"Plain Text"`) та `CsvExporter` (`"CSV"`).
-- **Абстрактний клас** `AbstractNoteExporter` — частково реалізує `NoteExporter`: містить спільну логіку `exportAll()` (цикл по масиву), а `export(Note)` залишається абстрактним. `CsvExporter` перевизначає `exportAll()` для додавання CSV-заголовку, але делегує формування рядків у `super.exportAll()`.
+### Рівність об'єктів
 
-### Рівень 3 — Високий
+`Note.equals()` перевіряє точний клас через `getClass()` і порівнює назву, текст, категорію, пріоритет і кількість слів. Дату створення не порівнюю, щоб пошук зразка з попередніх лабораторних залишався можливим у наступні дні. `ReminderNote` і `RecurringReminderNote` додають до порівняння власні поля; `hashCode()` обчислюється з тих самих даних. Це зберігає симетрію: об'єкти різних типів не вважаються рівними ні в одному напрямку.
 
-- **Паттерн Strategy:** клас `ExportContext` приймає `NoteExporter` через конструктор і делегує йому виконання. Метод `setExporter()` дозволяє змінити стратегію експорту під час виконання програми (runtime), без створення нового об'єкта контексту.
-- В `ExportNotesState` користувач обирає формат → `setExporter()` підставляє обрану стратегію на об'єкті `exportContext` → `executeExportAll()` виводить результат. Стан залишається відкритим для можливості повторної зміни стратегії на льоту.
+Наприклад, для `TextNote text` і `ReminderNote reminder`:
 
 ## ЛР5: Factory, Observer та Adapter
 
@@ -93,25 +137,41 @@ src/com/eugene/notesapp/
 
 ## Запуск
 
-### Вимоги
+Якби базовий клас використовував `instanceof Note`, а підклас додавав власні поля у `equals()`, порівняння могло б бути асиметричним. `getClass()` гарантує рівність лише об'єктів одного конкретного класу; `instanceof` допускає порівняння з підкласами й вимагає особливої уваги до симетрії.
 
-- Java 25+
+### Композиція
 
-### З командного рядка
+`ExportContext` містить поле типу `NoteExporter` і делегує йому експорт. Контекст не є експортером — він використовує його, тож композиція відповідає зв'язку «має». Наслідування тут порушило б зміст: контекст не повинен підміняти об'єкт, що форматує експорт.
 
-```bash
+## ЛР4: інтерфейси та Strategy
+
+- `NoteExporter` описує контракт експорту; `PlainTextExporter` і `CsvExporter` реалізують різні формати.
+- `AbstractNoteExporter` містить спільну реалізацію `exportAll()`. `CsvExporter` додає заголовок і делегує формування рядків методу `super.exportAll()`.
+- `ExportContext` зберігає стратегію в `NoteExporter` та може змінювати її через `setExporter()`.
+
+## Структура проєкту
+
+```text
+src/com/eugene/notesapp/
+├── Main.java
+├── model/
+│   ├── Note.java
+│   ├── TextNote.java
+│   ├── ReminderNote.java
+│   └── RecurringReminderNote.java
+├── exception/
+├── export/
+└── ui/state/
+```
+
+## Запуск
+
+Потрібна Java 25 або новіша.
+
+```powershell
 cd src
 javac -encoding UTF-8 com/eugene/notesapp/Main.java
 java -Dfile.encoding=UTF-8 com.eugene.notesapp.Main
 ```
 
-### Через run.bat
-
-```bat
-@echo off
-chcp 65001 > nul
-cd src
-javac -encoding UTF-8 com/eugene/notesapp/Main.java
-java -Dfile.encoding=UTF-8 com.eugene.notesapp.Main
-pause
-```
+Або запустіть `run.bat` з кореня репозиторію.
