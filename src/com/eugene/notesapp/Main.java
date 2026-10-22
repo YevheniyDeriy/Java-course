@@ -9,6 +9,9 @@ import com.eugene.notesapp.exception.InvalidPriorityException;
 import com.eugene.notesapp.exception.InvalidReminderException;
 import com.eugene.notesapp.ui.state.MainMenuState;
 import com.eugene.notesapp.ui.state.MenuContext;
+import com.eugene.notesapp.observer.NoteChangeSubject;
+import com.eugene.notesapp.observer.NoteCountObserver;
+import com.eugene.notesapp.observer.NoteLogObserver;
 
 import java.util.Scanner;
 import java.util.InputMismatchException;
@@ -18,9 +21,12 @@ public class Main
     public static Scanner scanner = new Scanner(System.in);
     public static int count = 0;
     public static Note[] notes = new Note[10];
+    public static final NoteChangeSubject noteChanges = new NoteChangeSubject();
 
     public static void main(String[] args)
     {
+        noteChanges.subscribe(new NoteLogObserver());
+        noteChanges.subscribe(new NoteCountObserver());
         IO.println("Вітаємо у програмі ведення персональних нотаток!");
 
         MenuContext context = new MenuContext(new MainMenuState());

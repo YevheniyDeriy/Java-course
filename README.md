@@ -71,7 +71,39 @@ classDiagram
 
 ### Абстрактний клас і конструктори
 
-`Note` абстрактний, бо конкретна нотатка має бути звичайною, з нагадуванням або з повторюваним нагадуванням. Абстрактний `getTypeDescription()` змушує кожен тип визначити власну назву. Базовий конструктор все одно потрібен: він ініціалізує спільні поля.
+```text
+src/com/eugene/notesapp/
+├── Main.java                          — точка входу, статичні методи CRUD
+├── model/
+│   └── Note.java                      — модель нотатки
+├── exception/
+│   ├── DomainException.java           — базовий checked exception
+│   ├── InvalidPriorityException.java  — некоректний пріоритет
+│   └── InvalidReminderException.java  — некоректне нагадування
+├── export/                            — ЛР4: інтерфейси та Strategy
+│   ├── NoteExporter.java              — інтерфейс з default-методом getFormatName()
+│   ├── AbstractNoteExporter.java      — абстрактний клас, спільна логіка exportAll()
+│   ├── PlainTextExporter.java         — реалізація №1: текстовий формат
+│   ├── CsvExporter.java              — реалізація №2: CSV формат з escape
+│   ├── ExportContext.java             — Strategy: контекст із setExporter()
+│   ├── NoteExporterFactory.java       — фабрика експортерів за кодом формату
+│   ├── LegacyNoteFormatter.java       — імітація зовнішнього форматера зі старим API
+│   └── LegacyNoteExporterAdapter.java — адаптер старого форматера до NoteExporter
+├── observer/                          — Observer для подій додавання нотаток
+│   ├── NoteObserver.java              — інтерфейс спостерігача
+│   ├── NoteChangeSubject.java         — підписка та сповіщення
+│   ├── NoteLogObserver.java           — запис події в журнал
+│   └── NoteCountObserver.java         — виведення статистики
+└── ui/state/                          — ЛР3: State pattern для меню
+    ├── MenuState.java                 — інтерфейс стану меню
+    ├── MenuContext.java               — контекст State-паттерну
+    ├── MainMenuState.java             — головне меню
+    ├── OperationNotesState.java       — додавання / видалення нотаток
+    ├── ViewNotesState.java            — перегляд нотаток
+    ├── SearchNotesState.java          — пошук нотаток
+    ├── SortNotesState.java            — сортування нотаток
+    └── ExportNotesState.java          — ЛР4: експорт із вибором формату
+```
 
 Під час створення `RecurringReminderNote` конструктори виконуються в порядку `Note` → `ReminderNote` → `RecurringReminderNote`. Кожен друкує повідомлення `[constructor] ...`; запустіть програму й додайте повторюване нагадування, щоб побачити порядок.
 
@@ -89,10 +121,21 @@ classDiagram
 
 Наприклад, для `TextNote text` і `ReminderNote reminder`:
 
-```java
-text.equals(reminder);   // false: класи різні
-reminder.equals(text);   // false: класи різні
-```
+## ЛР5: Factory, Observer та Adapter
+
+### Factory для експортерів
+
+Раніше `ExportNotesState` напряму створював `PlainTextExporter` і `CsvExporter`. Тепер `NoteExporterFactory` створює реалізацію за кодом формату (`TEXT`, `CSV`, `LEGACY`), а стан меню працює з інтерфейсом `NoteExporter`. Невідомий код завершується зрозумілим `IllegalArgumentException`.
+
+### Observer для додавання нотаток
+
+`NoteChangeSubject` зберігає підписників `NoteObserver` та сповіщає їх після успішного додавання нотатки. Підписані два незалежні спостерігачі: `NoteLogObserver` виводить подію журналу, а `NoteCountObserver` показує кількість нотаток. Новий спостерігач додається підпискою, без змін у класі суб'єкта.
+
+### Adapter для старого форматера
+
+`LegacyNoteFormatter` імітує зовнішній клас із методами `formatRecord` і `formatRecords`, які не відповідають контракту `NoteExporter`. `LegacyNoteExporterAdapter` перекладає виклики `export` та `exportAll` на цей API. Сам форматер не змінюється, а меню може використовувати його як звичайний експортер.
+
+## Запуск
 
 Якби базовий клас використовував `instanceof Note`, а підклас додавав власні поля у `equals()`, порівняння могло б бути асиметричним. `getClass()` гарантує рівність лише об'єктів одного конкретного класу; `instanceof` допускає порівняння з підкласами й вимагає особливої уваги до симетрії.
 
