@@ -1,11 +1,10 @@
 package com.eugene.notesapp.model;
 
 import java.time.LocalDate;
-import java.util.Objects;
 
-public abstract sealed class Note permits TextNote, ReminderNote
+
+public abstract sealed class Note extends BaseEntity permits TextNote, ReminderNote
 {
-    private final String title;
     private final String content;
     private final LocalDate date;
     private final String category;
@@ -20,7 +19,17 @@ public abstract sealed class Note permits TextNote, ReminderNote
 
     protected Note(String title, String content, String category, int priority, int wordCount)
     {
-        this.title = title;
+        super(title);
+        this.content = content;
+        this.date = LocalDate.now();
+        this.category = category;
+        this.priority = priority;
+        this.wordCount = wordCount;
+    }
+
+    protected Note(long id, String title, String content, String category, int priority, int wordCount)
+    {
+        super(id, title);
         this.content = content;
         this.date = LocalDate.now();
         this.category = category;
@@ -36,7 +45,7 @@ public abstract sealed class Note permits TextNote, ReminderNote
                 : content.trim().split("\\s+").length;
     }
 
-    public String getTitle() { return title; }
+    public String getTitle() { return getName(); }
     public String getContent() { return content; }
     public final LocalDate getDate() { return date; }
     public String getCategory() { return category; }
@@ -51,7 +60,7 @@ public abstract sealed class Note permits TextNote, ReminderNote
     @Override
     public String toString()
     {
-        return getTypeDescription() + ": " + title + "\n" +
+        return getTypeDescription() + ": " + getName() + "\n" +
                 "Категорія: " + category + "\n" +
                 "Пріоритет: " + priority + "\n" +
                 "Дата: " + date + "\n" +
@@ -59,21 +68,4 @@ public abstract sealed class Note permits TextNote, ReminderNote
                 "Кількість слів: " + wordCount;
     }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        Note other = (Note) obj;
-        return priority == other.priority && wordCount == other.wordCount &&
-                Objects.equals(title, other.title) &&
-                Objects.equals(content, other.content) &&
-                Objects.equals(category, other.category);
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(getClass(), title, content, category, priority, wordCount);
-    }
 }

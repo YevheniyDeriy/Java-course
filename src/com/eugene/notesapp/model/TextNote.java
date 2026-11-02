@@ -8,6 +8,11 @@ public final class TextNote extends Note
         System.out.println("[constructor] TextNote");
     }
 
+    public TextNote(long id, String title, String content, String category, int priority)
+    {
+        super(id, title, content, category, priority, countWords(content));
+    }
+
     @Override
     public String getTypeDescription()
     {

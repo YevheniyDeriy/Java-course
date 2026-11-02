@@ -19,6 +19,13 @@ public sealed class ReminderNote extends Note permits RecurringReminderNote
         System.out.println("[constructor] ReminderNote");
     }
 
+    public ReminderNote(long id, String title, String content, String category, int priority,
+                        double reminderInHours)
+    {
+        super(id, title, content, category, priority, countWords(content));
+        this.reminderInHours = reminderInHours;
+    }
+
     @Override
     public double getReminderInHours()
     {
@@ -37,16 +44,4 @@ public sealed class ReminderNote extends Note permits RecurringReminderNote
         return super.toString() + "\nНагадування через: " + reminderInHours + " год.";
     }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        return super.equals(obj) &&
-                Double.compare(reminderInHours, ((ReminderNote) obj).reminderInHours) == 0;
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return 31 * super.hashCode() + Double.hashCode(reminderInHours);
-    }
 }

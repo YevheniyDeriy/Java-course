@@ -20,7 +20,14 @@ public class Main
 {
     public static Scanner scanner = new Scanner(System.in);
     public static int count = 0;
-    public static Note[] notes = new Note[10];
+    public static Note[] notes = new Note[0];
+    public static final com.eugene.notesapp.service.NoteService noteService =
+            new com.eugene.notesapp.service.InMemoryNoteService();
+
+    public static void refreshSnapshot() {
+        notes = noteService.findAll().toArray(Note[]::new);
+        count = notes.length;
+    }
     public static final NoteChangeSubject noteChanges = new NoteChangeSubject();
 
     public static void main(String[] args)
@@ -115,8 +122,11 @@ public class Main
             }
             scanner.nextLine();
 
-            notes[count] = buildNote(title, content, category, priority,
+            Note created = buildNote(title, content, category, priority,
                     reminderInHours, repeatEveryHours);
+            noteService.save(created);
+            refreshSnapshot();
+            noteChanges.notifyNoteAdded(created, count);
             success = true;
         }
         catch (InvalidPriorityException e)
@@ -137,11 +147,6 @@ public class Main
         {
             IO.println("Помилка: пріоритет і час нагадування мають бути числами.");
             scanner.nextLine();
-        }
-        catch (ArrayIndexOutOfBoundsException e)
-        {
-            IO.println("Помилка: масив нотаток заповнений (максимум " + notes.length +
-                    "). Видаліть стару нотатку, щоб додати нову.");
         }
         finally
         {
@@ -168,6 +173,7 @@ public class Main
             if (printed >= count) {
                 break;
             }
+            IO.println("id=" + note.getId());
             IO.println(note);
             IO.println("Поліморфний опис: " + describeNote(note));
             if (note instanceof RecurringReminderNote recurring)
@@ -216,87 +222,28 @@ public class Main
 
     public static void sortNotes()
     {
-        IO.println();
-        IO.println("МАСИВ ДО СОРТУВАННЯ: ");
-        printNotes();
-        IO.println();
-        IO.println("МАСИВ ПІСЛЯ СОРТУВАННЯ: ");
-        bubbleSortPriority();
-        printNotes();
-    }
-
-    public static void bubbleSortPriority()
-    {
-        for (int i = 0; i < count - 1; i++)
-        {
-            for (int j = 0; j < count - i - 1; j++)
-            {
-                if (notes[j].getPriority() > notes[j + 1].getPriority())
-                {
-                    Note temp = notes[j];
-                    notes[j] = notes[j + 1];
-                    notes[j + 1] = temp;
-                }
-            }
-        }
+        IO.println("Сховище до сортування:");
+        com.eugene.notesapp.util.EntityPrinter.printAll(noteService.findAll());
+        IO.println("За назвою:");
+        com.eugene.notesapp.util.EntityPrinter.printAll(noteService.findAllSortedByName());
+        IO.println("За назвою та пріоритетом:");
+        com.eugene.notesapp.util.EntityPrinter.printAll(noteService.findAllSortedByNameAndByPriority());
+        IO.println("Сховище після сортування:");
+        com.eugene.notesapp.util.EntityPrinter.printAll(noteService.findAll());
     }
 
     public static void searchObject()
     {
-        IO.println();
-        IO.println("Введіть дані нотатки-зразка для пошуку (мають повністю збігатися з існуючою):");
-
-        IO.print("Назва: ");
-        String title = scanner.nextLine();
-
-        IO.print("Категорія: ");
-        String category = scanner.nextLine();
-
-        IO.print("Текст: ");
-        String content = scanner.nextLine();
-
-        IO.print("Пріоритет (1-5): ");
-        int priority = scanner.nextInt();
-
-        IO.print("Нагадування через (0 — без нагадування): ");
-        double reminderInHours = scanner.nextDouble();
-        double repeatEveryHours = 0;
-        if (reminderInHours > 0)
-        {
-            IO.print("Повторювати кожні скільки годин? (0 — одноразове): ");
-            repeatEveryHours = scanner.nextDouble();
-        }
-        scanner.nextLine();
-
-        try
-        {
-            Note sample = buildNote(title, content, category, priority,
-                    reminderInHours, repeatEveryHours);
-
-            int foundIndex = -1;
-            for (int i = 0; i < count; i++)
-            {
-                if (notes[i].equals(sample))
-                {
-                    foundIndex = i;
-                    break;
-                }
-            }
-
-            if (foundIndex != -1)
-            {
-                IO.println("Знайдено! Індекс у масиві: " + foundIndex);
-                IO.println(notes[foundIndex]);
-            }
-            else
-            {
-                IO.println("Такої нотатки в масиві немає.");
-            }
-        }
-        catch (DomainException e)
-        {
-            IO.println("Помилка: " + e.getMessage());
+        IO.print("Введіть id нотатки: ");
+        try {
+            long id = scanner.nextLong();
+            scanner.nextLine();
+            IO.println(noteService.findById(id));
+        } catch (com.eugene.notesapp.exception.EntityNotFoundException e) {
+            IO.println(e.getMessage());
+        } catch (InputMismatchException e) {
+            IO.println("id має бути цілим числом.");
+            scanner.nextLine();
         }
     }
-
 }

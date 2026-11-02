@@ -1,177 +1,99 @@
-# Personal Notes
+# Personal Notes — ЛР №7–9
 
-Консольний Java-застосунок для створення, пошуку, перегляду, сортування та експорту персональних нотаток.
+Типізований CRUD-сервіс персональних нотаток. Виконано **високий рівень**: generics, колекції, Comparator, default-метод і wildcards. Гілка: `lr7/typed-notes-crud`.
 
-## Предметна область
+## Запуск і перевірка
 
-Усі об'єкти моделі є нотатками. Спільні для них назва, текст, дата створення, категорія, пріоритет і кількість слів зберігаються в абстрактному класі `Note`. Різні способи нагадування задаються підкласами.
-
-| Клас | Зв'язок | Власні дані |
-| --- | --- | --- |
-| `Note` | Абстрактна sealed-основа | `title`, `content`, `date`, `category`, `priority`, `wordCount` |
-| `TextNote` | Звичайна нотатка є різновидом `Note` | Нагадування відсутнє |
-| `ReminderNote` | Нотатка з нагадуванням є різновидом `Note` | `reminderInHours` |
-| `RecurringReminderNote` | Повторюване нагадування є різновидом `ReminderNote` | `repeatEveryHours` |
-
-Перевірка «є різновидом» проходить для цих зв'язків: кожен підклас можна зберегти в змінній типу `Note`, а `RecurringReminderNote` — також у змінній `ReminderNote`. Натомість `ExportContext` не є експортером: він містить `NoteExporter`, тому це композиція («має»).
-
-## Діаграма класів
-
-```mermaid
-classDiagram
-    class Note {
-        <<abstract sealed>>
-        -String title
-        -String content
-        -LocalDate date
-        -String category
-        -int priority
-        -int wordCount
-        +getTypeDescription()* String
-        +getDate() final LocalDate
-        +equals(Object) boolean
-        +hashCode() int
-    }
-    class TextNote {
-        <<final>>
-        +getTypeDescription() String
-        +toString() String
-    }
-    class ReminderNote {
-        <<sealed>>
-        -double reminderInHours
-        +getTypeDescription() String
-        +toString() String
-        +equals(Object) boolean
-        +hashCode() int
-    }
-    class RecurringReminderNote {
-        <<final>>
-        -double repeatEveryHours
-        +getTypeDescription() String
-        +toString() String
-        +equals(Object) boolean
-        +hashCode() int
-    }
-    Note <|-- TextNote
-    Note <|-- ReminderNote
-    ReminderNote <|-- RecurringReminderNote
-    ExportContext o--> NoteExporter : містить
-```
-
-## ЛР6: наслідування та поліморфізм
-
-### Базовий рівень
-
-- `Note` містить спільний стан і поведінку. Його поля приватні й незмінні після створення.
-- `TextNote` та `ReminderNote` — два різні безпосередні підкласи `Note`. `RecurringReminderNote` успадковує поведінку `ReminderNote` і додає інтервал повторення.
-- Конструктори підкласів викликають `super(...)`. Перевантажені конструктори делегують через `this(...)`, щоб централізувати підрахунок слів і ініціалізацію.
-- Кожен конкретний тип перевизначає `getTypeDescription()` і `toString()`; `toString()` додає специфічні дані до `super.toString()`.
-- `Main.notes` має тип `Note[]`. `printNotes()` проходить по цьому масиву та показує результат поліморфного виклику `getTypeDescription()`.
-
-### Абстрактний клас і конструктори
-
-```text
-src/com/eugene/notesapp/
-├── Main.java                          — точка входу, статичні методи CRUD
-├── model/
-│   └── Note.java                      — модель нотатки
-├── exception/
-│   ├── DomainException.java           — базовий checked exception
-│   ├── InvalidPriorityException.java  — некоректний пріоритет
-│   └── InvalidReminderException.java  — некоректне нагадування
-├── export/                            — ЛР4: інтерфейси та Strategy
-│   ├── NoteExporter.java              — інтерфейс з default-методом getFormatName()
-│   ├── AbstractNoteExporter.java      — абстрактний клас, спільна логіка exportAll()
-│   ├── PlainTextExporter.java         — реалізація №1: текстовий формат
-│   ├── CsvExporter.java              — реалізація №2: CSV формат з escape
-│   ├── ExportContext.java             — Strategy: контекст із setExporter()
-│   ├── NoteExporterFactory.java       — фабрика експортерів за кодом формату
-│   ├── LegacyNoteFormatter.java       — імітація зовнішнього форматера зі старим API
-│   └── LegacyNoteExporterAdapter.java — адаптер старого форматера до NoteExporter
-├── observer/                          — Observer для подій додавання нотаток
-│   ├── NoteObserver.java              — інтерфейс спостерігача
-│   ├── NoteChangeSubject.java         — підписка та сповіщення
-│   ├── NoteLogObserver.java           — запис події в журнал
-│   └── NoteCountObserver.java         — виведення статистики
-└── ui/state/                          — ЛР3: State pattern для меню
-    ├── MenuState.java                 — інтерфейс стану меню
-    ├── MenuContext.java               — контекст State-паттерну
-    ├── MainMenuState.java             — головне меню
-    ├── OperationNotesState.java       — додавання / видалення нотаток
-    ├── ViewNotesState.java            — перегляд нотаток
-    ├── SearchNotesState.java          — пошук нотаток
-    ├── SortNotesState.java            — сортування нотаток
-    └── ExportNotesState.java          — ЛР4: експорт із вибором формату
-```
-
-Під час створення `RecurringReminderNote` конструктори виконуються в порядку `Note` → `ReminderNote` → `RecurringReminderNote`. Кожен друкує повідомлення `[constructor] ...`; запустіть програму й додайте повторюване нагадування, щоб побачити порядок.
-
-`Note.getDate()` позначений `final`: підкласи не повинні змінювати правило отримання дати створення нотатки. Сам `Note` запечатаний, а `TextNote` та `RecurringReminderNote` — фінальні.
-
-### Поліморфізм, типи та `sealed`
-
-У `Main.buildNote(...)` обирається `TextNote`, `ReminderNote` або `RecurringReminderNote`. У `printNotes()` змінна циклу має статичний тип `Note`, а її фактичний тип залежить від створеного об'єкта. Виклик `getTypeDescription()` обирає реалізацію за фактичним типом. Через `Note` не можна напряму викликати `getRepeatEveryHours()`, тому застосовано `instanceof RecurringReminderNote recurring`.
-
-`Note` оголошений як `sealed` з прямими підкласами `TextNote` і `ReminderNote`; останній дозволяє тільки `RecurringReminderNote`. Вичерпний `switch` у `Main.describeNote()` обробляє кожен дозволений варіант. Якщо дозволені типи зміняться, компілятор допоможе знайти неповний `switch`.
-
-### Рівність об'єктів
-
-`Note.equals()` перевіряє точний клас через `getClass()` і порівнює назву, текст, категорію, пріоритет і кількість слів. Дату створення не порівнюю, щоб пошук зразка з попередніх лабораторних залишався можливим у наступні дні. `ReminderNote` і `RecurringReminderNote` додають до порівняння власні поля; `hashCode()` обчислюється з тих самих даних. Це зберігає симетрію: об'єкти різних типів не вважаються рівними ні в одному напрямку.
-
-Наприклад, для `TextNote text` і `ReminderNote reminder`:
-
-## ЛР5: Factory, Observer та Adapter
-
-### Factory для експортерів
-
-Раніше `ExportNotesState` напряму створював `PlainTextExporter` і `CsvExporter`. Тепер `NoteExporterFactory` створює реалізацію за кодом формату (`TEXT`, `CSV`, `LEGACY`), а стан меню працює з інтерфейсом `NoteExporter`. Невідомий код завершується зрозумілим `IllegalArgumentException`.
-
-### Observer для додавання нотаток
-
-`NoteChangeSubject` зберігає підписників `NoteObserver` та сповіщає їх після успішного додавання нотатки. Підписані два незалежні спостерігачі: `NoteLogObserver` виводить подію журналу, а `NoteCountObserver` показує кількість нотаток. Новий спостерігач додається підпискою, без змін у класі суб'єкта.
-
-### Adapter для старого форматера
-
-`LegacyNoteFormatter` імітує зовнішній клас із методами `formatRecord` і `formatRecords`, які не відповідають контракту `NoteExporter`. `LegacyNoteExporterAdapter` перекладає виклики `export` та `exportAll` на цей API. Сам форматер не змінюється, а меню може використовувати його як звичайний експортер.
-
-## Запуск
-
-Якби базовий клас використовував `instanceof Note`, а підклас додавав власні поля у `equals()`, порівняння могло б бути асиметричним. `getClass()` гарантує рівність лише об'єктів одного конкретного класу; `instanceof` допускає порівняння з підкласами й вимагає особливої уваги до симетрії.
-
-### Композиція
-
-`ExportContext` містить поле типу `NoteExporter` і делегує йому експорт. Контекст не є експортером — він використовує його, тож композиція відповідає зв'язку «має». Наслідування тут порушило б зміст: контекст не повинен підміняти об'єкт, що форматує експорт.
-
-## ЛР4: інтерфейси та Strategy
-
-- `NoteExporter` описує контракт експорту; `PlainTextExporter` і `CsvExporter` реалізують різні формати.
-- `AbstractNoteExporter` містить спільну реалізацію `exportAll()`. `CsvExporter` додає заголовок і делегує формування рядків методу `super.exportAll()`.
-- `ExportContext` зберігає стратегію в `NoteExporter` та може змінювати її через `setExporter()`.
-
-## Структура проєкту
-
-```text
-src/com/eugene/notesapp/
-├── Main.java
-├── model/
-│   ├── Note.java
-│   ├── TextNote.java
-│   ├── ReminderNote.java
-│   └── RecurringReminderNote.java
-├── exception/
-├── export/
-└── ui/state/
-```
-
-## Запуск
-
-Потрібна Java 25 або новіша.
+Потрібна JDK 25 або новіша (наявний інтерфейс використовує `java.lang.IO`). З кореня репозиторію у PowerShell:
 
 ```powershell
-cd src
-javac -encoding UTF-8 com/eugene/notesapp/Main.java
-java -Dfile.encoding=UTF-8 com.eugene.notesapp.Main
+$sources = @(Get-ChildItem -Recurse src,tests -Filter *.java | ForEach-Object FullName)
+javac -encoding UTF-8 -d out @sources
+java '-Dfile.encoding=UTF-8' -cp out com.eugene.notesapp.CrudDemo
+java '-Dfile.encoding=UTF-8' -cp out com.eugene.notesapp.CrudServiceTest
+java '-Dfile.encoding=UTF-8' -cp out com.eugene.notesapp.Main
 ```
 
-Або запустіть `run.bat` з кореня репозиторію.
+`CrudDemo` не потребує введення: показує додавання трьох записів, обидва сортування, порядок сховища після них, оновлення без збільшення кількості, успішне та повторне видалення, обробку відсутнього id і роботу того самого generic-класу з двома сутностями. Тести завершуються рядком `PASS` або кидають `AssertionError`; прапорець `-ea` не потрібний.
+
+У меню можна додавати, переглядати, шукати та видаляти нотатки за id, сортувати й експортувати. Сервіс є основним сховищем; `Main.notes` і `count` — знімок для сумісності попередніх меню та експортерів, який оновлюється після запису або видалення. Обмеження у 10 нотаток прибрано. Оновлення через `save` демонструється у `CrudDemo`.
+
+## Модель і структура
+
+- `model/BaseEntity`: незмінні `long id` та `String name`, конструктори, гетери, остаточні `equals`/`hashCode` за id.
+- `model/Note`: абстрактний sealed-підклас BaseEntity; текст, дата, категорія, пріоритет, кількість слів. `getTitle()` повертає успадковану назву.
+- `TextNote`: звичайна нотатка; `ReminderNote`: додатково час нагадування; `RecurringReminderNote`: інтервал повторення.
+- `service/CRUDService<T extends BaseEntity>`: `T findById(long id)`, `void save(T entity)`, `boolean delete(long id)`, `List<T> findAll()`, `List<T> findAllSorted(Comparator<? super T>)`, default `findAllSortedByName()`.
+- `InMemoryCrudService<T>`: універсальна реалізація; `NoteService` та `InMemoryNoteService`: сортування нотаток за назвою і пріоритетом.
+- `exception/EntityNotFoundException`: відсутня сутність; `util/EntityPrinter`: `printAll(Collection<? extends BaseEntity>)`.
+- `CrudDemo`, `tests/.../CrudServiceTest.java`: демонстрація й автоматичні перевірки.
+
+Конструктори без id генерують його спільним лічильником для всіх типів. Конструктори TextNote і ReminderNote з явним id дозволяють відновити або оновити сутність; явний id піднімає лічильник. Id додатні, `Long.MAX_VALUE` зарезервований. Це локальна ідентичність у межах запуску, без персистентного зберігання. Однаковий id позначає одну сутність незалежно від конкретного підкласу; викликаючий код відповідає за правильне призначення явних id.
+
+Попередні Factory/Strategy/Adapter експорту, Observer додавання та State меню збережено. Рівність за вмістом із ЛР6 замінено рівністю за id за умовою цієї роботи; пошук зразка замінено пошуком за id.
+
+## Контракт і винятки
+
+`save` виконує `Map.put`: новий ключ додає запис, існуючий замінює значення без зміни позиції й кількості. Сам `put` повертає попереднє значення або null. `save(null)` кидає `NullPointerException` через `Objects.requireNonNull`; null не потрапляє у сховище. Назва теж не може бути null.
+
+`findById` повертає сутність або кидає `EntityNotFoundException` з полем id та повідомленням. Це unchecked (`RuntimeException`): відсутність обробляється на межі сценарію без обов’язкового `throws` у кожному методі. Повернення null змушувало б кожного клієнта перевіряти результат і створювало б ризик NPE. `delete` повертає boolean, оскільки повторне видалення — очікуваний результат: true при видаленні, false за відсутності ключа.
+
+Обмеження `T extends BaseEntity` дозволяє викликати `getId()` та `getName()` без приведення типів. Без нього T мав би лише можливості Object. Generic-клас не містить перевірок конкретного типу та без змін працює з TextNote і ReminderNote. Для третьої сутності достатньо нового підкласу BaseEntity (для підкласу sealed Note потрібно також змінити permits); загальний CRUD змінювати не потрібно.
+
+## Колекція сховища
+
+Нехай n — кількість записів. Сортування — за назвою, а не за ключем id.
+
+| Колекція | findById | save (додавання/оновлення) | delete | Відсортована копія | Порядок обходу |
+| --- | --- | --- | --- | --- | --- |
+| ArrayList | O(n) | O(n), бо треба знайти id | O(n) | O(n log n) | Позиційний |
+| HashMap | O(1) очікувано | O(1) очікувано | O(1) очікувано | O(n log n)* | Не гарантований |
+| LinkedHashMap | O(1) очікувано | O(1) очікувано | O(1) очікувано | O(n log n) | Порядок додавання |
+| TreeMap | O(log n) | O(log n) | O(log n) | O(n log n) | За id |
+
+*Обхід HashMap додатково залежить від місткості таблиці: O(n + capacity). Оцінки для хеш-операцій не є гарантією найгіршого випадку; розширення таблиці робить вставку амортизованою. Для ArrayList саме CRUD-save потребує пошуку; звичайний append окремо має амортизоване O(1).
+
+Обрано LinkedHashMap: швидкі операції за id, унікальність ключів і передбачуваний початковий порядок для демонстрації. Повторний put не пересуває ключ у звичайному insertion-order режимі. Видалення і повторне додавання пересуває його в кінець. TreeMap за id не прискоршує сортування за назвою. TreeSet з компаратором лише за назвою втратив би один із записів з однаковою назвою, бо compare == 0 означає для нього дубль.
+
+Відсортована копія займає O(n) додаткової пам’яті. Якщо головною операцією стане впорядкований вивід, доречний додатковий індекс за (назва, пріоритет, id). Для мільйонів записів — БД з індексами та пагінацією, без копіювання всього набору щоразу. Поточний сервіс однопотоковий і зберігає дані лише в RAM.
+
+## Сортування та рівність
+
+Використано Comparator: нотатки мають кілька корисних порядків, а єдиного природного порядку немає. Comparable нав’язав би всім сутностям один compareTo і зв’язав модель з правилом відображення. Компаратори зберігають правила у сервісі.
+
+`findAllSortedByName()` — default-метод інтерфейсу; він делегує до `findAllSorted`. Спеціалізований метод теж делегує до нього та використовує `Comparator.comparing(Note::getName).thenComparingInt(Note::getPriority)`. Пріоритет сортується за зростанням: 1 перед 5. Для назви «План» у демо результат має id 103 (пріоритет 1), потім 101 (пріоритет 5). Сортування тільки за назвою зберігає початковий порядок цих двох записів завдяки стабільності List.sort.
+
+Ручний еквівалент другого компаратора:
+
+```java
+(a, b) -> {
+    int byName = a.getName().compareTo(b.getName());
+    return byName != 0 ? byName : Integer.compare(a.getPriority(), b.getPriority());
+}
+```
+
+Назви порівнюються стандартним String.compareTo (лексикографічно, з урахуванням регістру). Для мовного українського алфавітного порядку можна передати Comparator з Collator для uk-UA через той самий findAllSorted.
+
+Метод за другим полем винесено в NoteService, бо пріоритет належить Note, а не довільному BaseEntity. Загальний сервіс знає лише id та name. Інтерфейс дозволяє замінити пам’ять на JDBC-реалізацію без зміни клієнтів.
+
+Компаратори **не узгоджені з equals**: різні id можуть мати однакові назви та пріоритети, а однаковий id у різних версіях може мати різні назви. Для List.sort це допустимо: записи не губляться. Використовувати ці компаратори для унікальності TreeSet/TreeMap не слід. final equals/hashCode в BaseEntity гарантують симетрію та однаковий hashCode для одного id; підкласи не додають власних полів до рівності.
+
+`findAll()` створює новий ArrayList зі значень, а findAllSorted сортує лише його. Це незалежний контейнер, не глибоке клонування сутностей; сутності незмінні. Тести порівнюють порядок і склад сховища до/після та очищають повернуті списки, перевіряючи, що сховище не змінилося.
+
+## Generics і wildcards — для захисту
+
+`Comparator<? super T>` приймає споживача T: можна передати як Comparator<Note>, так і Comparator<BaseEntity> для сервісу нотаток (PECS: consumer super). Comparator<T> відкинув би компаратор базового типу. Метод використовує параметр типу класу T; окремий параметр `<U>` тут не потрібний.
+
+`List<TextNote>` не є List<BaseEntity>: інакше через базове посилання можна було б додати ReminderNote у список текстових нотаток. `Collection<? extends BaseEntity>` дозволяє безпечно читати BaseEntity з колекції будь-якого її підтипу, тому printAll приймає обидва списки; додавати довільні сутності через це посилання не можна.
+
+Generics знаходять помилки типів під час компіляції та усувають ручні casts з Object. Примітиви не можуть бути параметрами типів; у звичайних колекціях використовують Long замість long, але CRUDService<Long> теж неможливий через вимогу extends BaseEntity. `new T()` і `new T[10]` недоступні через стирання типів та відсутність гарантованого конструктора; сервіс створює LinkedHashMap, а сутності отримує від клієнта.
+
+Компаратор повертає від’ємне число, нуль або додатне число; він має бути антисиметричним за знаком і транзитивним. Віднімання чисел може переповнитися або втратити точність, тому використовуються Integer.compare/Double.compare, comparingInt тощо. Collections.sort(list) без компаратора потребує Comparable; наші нотатки сортуються через явний Comparator.
+
+List.of створює незмінний список; new ArrayList — змінний. Для видалення під час обходу застосовують Iterator.remove або removeIf; структурна зміна колекції напряму всередині for-each може спричинити ConcurrentModificationException.
+
+## Перевірки
+
+Автоматична перевірка охоплює CRUD, заміну без збільшення кількості, позицію після оновлення, вторинне сортування, стабільність однакових назв, незалежні копії, Comparator<BaseEntity>, порожній сервіс, рівність/хеш за id між підкласами, винятки та два типізовані екземпляри одного generic-класу.
+
+Для здачі потрібен PR цієї гілки у main; дата першої пари в умовах не вказана, тому календарний дедлайн потрібно визначити за розкладом.

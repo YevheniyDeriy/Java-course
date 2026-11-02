@@ -41,16 +41,4 @@ public final class RecurringReminderNote extends ReminderNote
         return super.toString() + "\nПовторювати кожні: " + repeatEveryHours + " год.";
     }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        return super.equals(obj) &&
-                Double.compare(repeatEveryHours, ((RecurringReminderNote) obj).repeatEveryHours) == 0;
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return 31 * super.hashCode() + Double.hashCode(repeatEveryHours);
-    }
 }
