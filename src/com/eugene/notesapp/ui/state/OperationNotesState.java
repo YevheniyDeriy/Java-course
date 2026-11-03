@@ -29,17 +29,21 @@ public class OperationNotesState implements MenuState
         {
             case 1:
             {
-                boolean added = Main.addNote();
-                if (added)
-                {
-                    Main.count++;
-                    Main.noteChanges.notifyNoteAdded(Main.notes[Main.count - 1], Main.count);
-                }
+                Main.addNote();
                 break;
             }
             case 2:
             {
-                IO.println("Функціонал нажаль ще не реалізований...");
+                IO.print("Введіть id для видалення: ");
+                try {
+                    long id = Main.scanner.nextLong();
+                    Main.scanner.nextLine();
+                    IO.println(Main.noteService.delete(id) ? "Видалено." : "Такого id немає.");
+                    Main.refreshSnapshot();
+                } catch (InputMismatchException e) {
+                    IO.println("id має бути цілим числом.");
+                    Main.scanner.nextLine();
+                }
                 break;
             }
             case 0:
