@@ -9,7 +9,6 @@ public final class RecurringReminderNote extends ReminderNote
     {
         this(title, content, category, priority, reminderInHours, repeatEveryHours,
                 countWords(content));
-        System.out.println("[constructor] RecurringReminderNote (this-delegation)");
     }
 
     private RecurringReminderNote(String title, String content, String category, int priority,
@@ -21,12 +20,20 @@ public final class RecurringReminderNote extends ReminderNote
             throw new IllegalArgumentException("Інтервал повторення має бути більшим за 0.");
         }
         this.repeatEveryHours = repeatEveryHours;
-        System.out.println("[constructor] RecurringReminderNote");
     }
 
     public double getRepeatEveryHours()
     {
         return repeatEveryHours;
+    }
+
+    public RecurringReminderNote(long id, String title, String content, String category, int priority,
+                                 double reminderInHours, double repeatEveryHours,
+                                 java.time.LocalDate date)
+    {
+        super(id, title, content, category, priority, reminderInHours, date);
+        if (repeatEveryHours <= 0) throw new IllegalArgumentException("Repeat interval must be positive");
+        this.repeatEveryHours = repeatEveryHours;
     }
 
     @Override

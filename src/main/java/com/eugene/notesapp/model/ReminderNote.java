@@ -8,7 +8,6 @@ public sealed class ReminderNote extends Note permits RecurringReminderNote
                         double reminderInHours)
     {
         this(title, content, category, priority, reminderInHours, countWords(content));
-        System.out.println("[constructor] ReminderNote (this-delegation)");
     }
 
     protected ReminderNote(String title, String content, String category, int priority,
@@ -16,7 +15,6 @@ public sealed class ReminderNote extends Note permits RecurringReminderNote
     {
         super(title, content, category, priority, wordCount);
         this.reminderInHours = reminderInHours;
-        System.out.println("[constructor] ReminderNote");
     }
 
     public ReminderNote(long id, String title, String content, String category, int priority,
@@ -30,6 +28,13 @@ public sealed class ReminderNote extends Note permits RecurringReminderNote
     public double getReminderInHours()
     {
         return reminderInHours;
+    }
+
+    public ReminderNote(long id, String title, String content, String category, int priority,
+                        double reminderInHours, java.time.LocalDate date)
+    {
+        super(id, title, content, category, priority, countWords(content), date);
+        this.reminderInHours = reminderInHours;
     }
 
     @Override

@@ -6,6 +6,9 @@ import com.eugene.notesapp.service.*;
 import java.util.*;
 
 public final class CrudServiceTest {
+    @org.junit.jupiter.api.Test
+    void previousLaboratoryContract() { main(new String[0]); }
+
     private static void check(boolean condition, String message) {
         if (!condition) throw new AssertionError(message);
     }

@@ -14,7 +14,6 @@ public abstract sealed class Note extends BaseEntity permits TextNote, ReminderN
     protected Note(String title, String content, String category, int priority)
     {
         this(title, content, category, priority, countWords(content));
-        System.out.println("[constructor] Note (this-delegation)");
     }
 
     protected Note(String title, String content, String category, int priority, int wordCount)
@@ -29,13 +28,18 @@ public abstract sealed class Note extends BaseEntity permits TextNote, ReminderN
 
     protected Note(long id, String title, String content, String category, int priority, int wordCount)
     {
+        this(id, title, content, category, priority, wordCount, LocalDate.now());
+    }
+
+    protected Note(long id, String title, String content, String category, int priority,
+                   int wordCount, LocalDate date)
+    {
         super(id, title);
         this.content = content;
-        this.date = LocalDate.now();
+        this.date = java.util.Objects.requireNonNull(date, "date");
         this.category = category;
         this.priority = priority;
         this.wordCount = wordCount;
-        System.out.println("[constructor] Note");
     }
 
     protected static int countWords(String content)

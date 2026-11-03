@@ -22,7 +22,7 @@ public class Main
     public static int count = 0;
     public static Note[] notes = new Note[0];
     public static final com.eugene.notesapp.service.NoteService noteService =
-            new com.eugene.notesapp.service.InMemoryNoteService();
+            new com.eugene.notesapp.service.JdbcNoteService();
 
     public static void refreshSnapshot() {
         notes = noteService.findAll().toArray(Note[]::new);
@@ -32,14 +32,18 @@ public class Main
 
     public static void main(String[] args)
     {
-        noteChanges.subscribe(new NoteLogObserver());
-        noteChanges.subscribe(new NoteCountObserver());
-        IO.println("Вітаємо у програмі ведення персональних нотаток!");
+        try (com.eugene.notesapp.db.DBConnection database =
+                     com.eugene.notesapp.db.DBConnection.getInstance()) {
+            refreshSnapshot();
+            noteChanges.subscribe(new NoteLogObserver());
+            noteChanges.subscribe(new NoteCountObserver());
+            IO.println("Вітаємо у програмі ведення персональних нотаток!");
 
-        MenuContext context = new MenuContext(new MainMenuState());
-        context.run();
-
-        scanner.close();
+            MenuContext context = new MenuContext(new MainMenuState());
+            context.run();
+        } finally {
+            scanner.close();
+        }
     }
 
     // FUNCTIONS  ↓
