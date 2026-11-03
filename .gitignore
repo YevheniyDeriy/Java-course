@@ -7,3 +7,7 @@ target/
 run.bat
 
 *.class
+
+data/
+*.mv.db
+*.trace.db

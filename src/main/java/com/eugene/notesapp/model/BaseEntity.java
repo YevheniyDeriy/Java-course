@@ -20,6 +20,12 @@ public abstract class BaseEntity {
     public final long getId() { return id; }
     public final String getName() { return name; }
 
+    /** Called once at database startup, before clients construct new entities. */
+    public static void reserveIdsThrough(long id) {
+        if (id < 0 || id >= Long.MAX_VALUE - 1) throw new IllegalArgumentException("Id limit reached");
+        NEXT_ID.accumulateAndGet(id + 1, Math::max);
+    }
+
     @Override
     public final boolean equals(Object obj) {
         return this == obj || obj instanceof BaseEntity other && id == other.id;
