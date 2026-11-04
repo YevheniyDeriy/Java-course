@@ -21,8 +21,9 @@ public class Main
     public static Scanner scanner = new Scanner(System.in);
     public static int count = 0;
     public static Note[] notes = new Note[0];
-    public static final com.eugene.notesapp.service.NoteService noteService =
-            new com.eugene.notesapp.service.JdbcNoteService();
+    private static final com.eugene.notesapp.service.NoteServices.Selection storage =
+            com.eugene.notesapp.service.NoteServices.open(System.getProperty("notes.storage", "hibernate"));
+    public static final com.eugene.notesapp.service.NoteService noteService = storage.service();
 
     public static void refreshSnapshot() {
         notes = noteService.findAll().toArray(Note[]::new);
@@ -32,8 +33,7 @@ public class Main
 
     public static void main(String[] args)
     {
-        try (com.eugene.notesapp.db.DBConnection database =
-                     com.eugene.notesapp.db.DBConnection.getInstance()) {
+        try (var selectedStorage = storage) {
             refreshSnapshot();
             noteChanges.subscribe(new NoteLogObserver());
             noteChanges.subscribe(new NoteCountObserver());

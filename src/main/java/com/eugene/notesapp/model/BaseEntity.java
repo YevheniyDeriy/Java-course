@@ -8,7 +8,15 @@ public abstract class BaseEntity {
     private final long id;
     private final String name;
 
-    protected BaseEntity(String name) { this(NEXT_ID.getAndIncrement(), name); }
+    protected BaseEntity(String name) { this(nextId(), name); }
+
+    /** Shared by the domain constructors and the schema-compatible ORM generator. */
+    public static long nextId() {
+        return NEXT_ID.getAndUpdate(value -> {
+            if (value <= 0 || value == Long.MAX_VALUE) throw new IllegalStateException("Id limit reached");
+            return value + 1;
+        });
+    }
 
     protected BaseEntity(long id, String name) {
         if (id <= 0 || id == Long.MAX_VALUE) throw new IllegalArgumentException("Invalid id: " + id);
